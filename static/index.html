@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сергек — фиксация нарушений</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #13161e;
+    --border:   #1e2130;
+    --accent:   #e63946;
+    --amber:    #f4a261;
+    --green:    #2dc653;
+    --text:     #dde1ec;
+    --muted:    #5a6178;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Inter', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 14px;
+  }
+
+  .logo {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+
+  .counters {
+    margin-left: auto;
+    display: flex;
+    gap: 24px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .counters span b {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    overflow: hidden;
+  }
+
+  /* ── Video panel ── */
+  .video-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+  }
+
+  #videoFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .video-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0,0,0,.6);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Right panel ── */
+  .right {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  .search-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* ── Violations list ── */
+  .vlist {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .vlist::-webkit-scrollbar { width: 3px; }
+  .vlist::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .vitem {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    transition: background .1s;
+    cursor: default;
+  }
+
+  .vitem:hover { background: rgba(255,255,255,.02); }
+
+  .vitem img {
+    width: 88px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+
+  .vitem img:hover { opacity: .8; }
+
+  .vitem .no-photo {
+    width: 88px;
+    height: 54px;
+    border-radius: 5px;
+    border: 1px dashed var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .vinfo { flex: 1; min-width: 0; }
+
+  .plate {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--amber);
+    letter-spacing: .08em;
+  }
+
+  .plate.unknown { color: var(--muted); font-size: 12px; font-family: var(--sans); }
+
+  .vtime {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .vbottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .badge.new    { background: rgba(96,165,250,.12); color: #60a5fa; }
+  .badge.warned { background: rgba(244,162,97,.12); color: var(--amber); }
+  .badge.fined  { background: rgba(230,57,70,.12);  color: var(--accent); }
+
+  .status-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* ── Top plates ── */
+  .top-section {
+    border-top: 1px solid var(--border);
+    padding: 12px 14px;
+    flex-shrink: 0;
+  }
+
+  .top-title {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top-row:last-child { border-bottom: none; }
+
+  .top-plate {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--amber);
+  }
+
+  .top-cnt {
+    font-size: 11px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🚦</div>
+  <h1>Сергек — фиксация нарушений стоп-линии</h1>
+  <div class="counters">
+    <span>Сегодня: <b id="today">—</b></span>
+    <span>Всего: <b id="total">—</b></span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Видео с камеры -->
+  <div class="video-panel">
+    <div class="video-label">● Live</div>
+    <img id="videoFeed" src="/video" alt="Видеопоток">
+  </div>
+
+  <!-- Правая панель -->
+  <div class="right">
+
+    <div class="panel-header">
+      <div class="panel-title">Нарушения</div>
+      <input
+        class="search-input"
+        id="searchInput"
+        placeholder="Поиск по номеру..."
+        oninput="onSearch(this.value)"
+      >
+    </div>
+
+    <div class="vlist" id="vlist">
+      <div class="empty">Нарушений пока нет.<br>Ожидаю данные с камеры...</div>
+    </div>
+
+    <div class="top-section" id="topSection" style="display:none">
+      <div class="top-title">Топ нарушителей</div>
+      <div id="topList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Форматирование даты ──
+  function fmtDate(str) {
+    const d = new Date(str);
+    return d.toLocaleDateString('ru') + ' ' + d.toLocaleTimeString('ru');
+  }
+
+  // ── Рендер списка нарушений ──
+  function render(rows) {
+    const el = document.getElementById('vlist');
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty">Нарушений не найдено</div>';
+      return;
+    }
+
+    el.innerHTML = rows.map(r => {
+      const cropFile = r.crop_photo ? r.crop_photo.split('\\').pop().split('/').pop() : null;
+      const fullFile = r.full_photo ? r.full_photo.split('\\').pop().split('/').pop() : null;
+
+      const imgHtml = cropFile
+        ? `<img
+            src="/photos/${cropFile}"
+            alt="фото"
+            onclick="window.open('/photos/${fullFile}')"
+            title="Нажми для полного кадра"
+           >`
+        : `<div class="no-photo">нет фото</div>`;
+
+      const plateHtml = r.plate
+        ? `<div class="plate">${r.plate}</div>`
+        : `<div class="plate unknown">номер не распознан</div>`;
+
+      return `
+        <div class="vitem">
+          ${imgHtml}
+          <div class="vinfo">
+            ${plateHtml}
+            <div class="vtime">${fmtDate(r.detected_at)}</div>
+            <div class="vbottom">
+              <span class="badge ${r.status}">${r.status}</span>
+              <select class="status-select" onchange="setStatus(${r.id}, this.value)">
+                <option value="new"    ${r.status==='new'    ?'selected':''}>new</option>
+                <option value="warned" ${r.status==='warned' ?'selected':''}>warned</option>
+                <option value="fined"  ${r.status==='fined'  ?'selected':''}>fined</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Загрузка нарушений ──
+  async function loadViolations(plate = '') {
+    const url = plate
+      ? `/api/search?plate=${encodeURIComponent(plate)}`
+      : '/api/violations?limit=50';
+    const data = await fetch(url).then(r => r.json());
+    render(data);
+  }
+
+  // ── Смена статуса ──
+  async function setStatus(id, status) {
+    await fetch(`/api/violations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    loadViolations(document.getElementById('searchInput').value);
+  }
+
+  // ── Статистика ──
+  async function loadStats() {
+    const s = await fetch('/api/stats').then(r => r.json());
+    document.getElementById('total').textContent = s.total;
+    document.getElementById('today').textContent = s.today;
+
+    const topSection = document.getElementById('topSection');
+    const topList = document.getElementById('topList');
+
+    if (s.top_plates && s.top_plates.length) {
+      topSection.style.display = 'block';
+      topList.innerHTML = s.top_plates.map(p => `
+        <div class="top-row">
+          <span class="top-plate">${p.plate}</span>
+          <span class="top-cnt">${p.cnt} раз</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // ── Поиск с задержкой ──
+  let searchTimer;
+  function onSearch(val) {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadViolations(val), 300);
+  }
+
+  // ── Автообновление каждые 3 секунды ──
+  function refresh() {
+    const plate = document.getElementById('searchInput').value;
+    loadViolations(plate);
+    loadStats();
+  }
+
+  refresh();
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>
